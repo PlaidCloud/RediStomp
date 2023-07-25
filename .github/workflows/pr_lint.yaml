@@ -1,0 +1,48 @@
+name: Lint PlaidCloud RPC Service
+on:
+  pull_request:
+    branches:
+      - master
+jobs:
+  reviewdog:
+    name: Lint RediStomp w ReviewDog
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ensure python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Acquire list of changed python files
+        id: all-python-files
+        continue-on-error: true
+        uses: tj-actions/changed-files@v35
+        with:
+          files: |
+            **/*.py
+      - name: Install Ubuntu dependencies
+        run: sudo apt-get update; sudo apt-get install -y curl
+      - name: Install dependencies
+        run: pip install -r requirements.txt; pip install -q pylint==${{ secrets.PYLINT_VERSION }}; pip install -q liccheck;
+      - name: License Checker
+        uses: andersy005/gh-action-py-liccheck@main
+        with:
+          strategy-ini-file: ./liccheck.ini
+          level: cautious
+          requirements-txt-file: ./requirements.txt
+          liccheck-version: ${{ secrets.LICCHECK_VERSION }}
+      - name: Install ReviewDog
+        uses: reviewdog/action-setup@v1
+      - name: Check Lint Warnings
+        if: ${{ steps.all-python-files.outputs.any_changed == 'true' }}
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pylint -s n -f text -d E,R,C ${{ steps.all-python-files.outputs.all_changed_files }} 2>&1 | reviewdog -efm="%f:%l:%c: %m" -name="PyLint Warnings" -reporter=github-check -level=warning
+      - name: Check Lint Errors
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pylint -s n -f text -E plaid 2>&1 | reviewdog -efm="%f:%l:%c: %m" -name="PyLint Errors" -reporter=github-check -filter-mode=nofilter -fail-on-error

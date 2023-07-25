@@ -1,0 +1,4 @@
+anyio==3.7.1
+coilmq@git+https://github.com/rad-pat/coilmq.git@asyncio#egg=coilmq
+starlette==0.31.0
+uvicorn==0.23.1
