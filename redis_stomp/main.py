@@ -99,7 +99,7 @@ app = Starlette(
     routes=routes,
 )
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--port', type=int, nargs='?', const=8000, default=8000, help='Port for web server.')
     parser.add_argument('-r', '--redis', nargs='?', const='redis://localhost:6379', default='redis://localhost:6379', help='URL to connect to Redis')
@@ -110,9 +110,11 @@ if __name__ == "__main__":
         uvicorn.run(app, host="0.0.0.0", port=args.port, access_log=False, proxy_headers=True, forwarded_allow_ips='*', log_level='debug')
     except KeyboardInterrupt:
         pass
-    except:
-        import traceback
-        LOGGER.error(traceback.format_exc())
+    except Exception as e:
+        LOGGER.exception('Server terminated due to error: %s' % e)
         raise
 
     LOGGER.info('Gracefully exiting')
+
+if __name__ == "__main__":
+    main()

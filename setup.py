@@ -32,4 +32,9 @@ setup(
     # extras_require=extras,
     long_description=long_description,
     long_description_content_type='text/markdown',
+    entry_points={
+        'console_scripts': [
+            'redistomp=redis_stomp.main:main',
+        ],
+    },
 )
