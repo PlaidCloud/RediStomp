@@ -1,4 +1,5 @@
 import argparse
+import os
 import anyio
 import uvicorn
 from uvicorn.config import LOGGING_CONFIG
@@ -101,8 +102,10 @@ app = Starlette(
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-p', '--port', type=int, nargs='?', const=8000, default=8000, help='Port for web server.')
-    parser.add_argument('-r', '--redis', nargs='?', const='redis://localhost:6379', default='redis://localhost:6379', help='URL to connect to Redis')
+    default_port = os.environ.get('PORT', 8000)
+    parser.add_argument('-p', '--port', type=int, nargs='?', const=default_port, default=default_port, help='Port for web server.')
+    default_redis_url = os.environ.get('REDIS_URL', 'redis://localhost:6379')
+    parser.add_argument('-r', '--redis', nargs='?', const=default_redis_url, default=default_redis_url, help='URL to connect to Redis')
     args = parser.parse_args()
     try:
         LOGGING_CONFIG["formatters"]["default"]["fmt"] = "%(asctime)s [%(name)s] %(levelprefix)s %(message)s"
