@@ -115,6 +115,7 @@ def main():
     default_redis_url = os.environ.get('REDIS_URL', 'redis://localhost:6379')
     parser.add_argument('-r', '--redis', nargs='?', const=default_redis_url, default=default_redis_url, help='URL to connect to Redis')
     args = parser.parse_args()
+    LOGGER.info(f'Connecting to Redis at {args.redis}, serving on port {args.port}')
     try:
         LOGGING_CONFIG["formatters"]["default"]["fmt"] = "%(asctime)s [%(name)s] %(levelprefix)s %(message)s"
         app.state.redis_url = args.redis
