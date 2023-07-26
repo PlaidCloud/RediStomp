@@ -7,6 +7,7 @@ import uvicorn
 from uvicorn.config import LOGGING_CONFIG
 from starlette.applications import Starlette
 from starlette.requests import Request
+from starlette.responses import Response
 from starlette.routing import Route, WebSocketRoute
 from starlette.endpoints import WebSocketEndpoint, WebSocket
 from starlette import status
@@ -96,11 +97,12 @@ class StompEndpoint(WebSocketEndpoint, StompConnection):
 async def alive_probe(request: Request):
     redis_con = aio_connect(request.app.state.redis_url, decode_responses=True).pubsub(ignore_subscribe_messages=True)
     await redis_con.ping()
+    return Response()
 
 
 routes = [
     WebSocketRoute("/ws", StompEndpoint, name='stomp_ws'),
-    Route('/alive', alive_probe),
+    Route('/alive', alive_probe, methods=['GET']),
 ]
 
 
