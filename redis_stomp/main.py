@@ -19,6 +19,7 @@ from coilmq.exception import ClientDisconnected
 from redis.asyncio import Redis
 
 from redis_stomp.pubsub.topic import RedisTopicManager
+from redis_stomp.redis_connector import aio_connect
 
 logging.basicConfig(
     level = logging.DEBUG,
@@ -93,7 +94,7 @@ class StompEndpoint(WebSocketEndpoint, StompConnection):
         await self.websocket.send_text(heartbeat)
 
 async def alive_probe(request: Request):
-    redis_con = Redis.from_url(request.app.state.redis_url, decode_responses=True).pubsub(ignore_subscribe_messages=True)
+    redis_con = aio_connect(request.app.state.redis_url, decode_responses=True).pubsub(ignore_subscribe_messages=True)
     await redis_con.ping()
 
 
