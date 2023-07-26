@@ -2,10 +2,12 @@ import asyncio
 import glob
 import logging
 import uuid
+
 from coilmq.asyncio.topic import TopicManager
 from coilmq.asyncio.server import StompConnection
 from coilmq.util.frames import Frame, MESSAGE
-from redis.asyncio import Redis
+
+from redis_stomp.redis_connector import aio_connect
 
 
 LOGGER = logging.getLogger(__name__)
@@ -16,7 +18,7 @@ class RedisTopicManager(TopicManager):
     Class that manages distribution of messages to topic subscribers.
 
     This class uses C{threading.RLock} to guard the public methods.  This is probably
-    a bit excessive, given 1) the actomic nature of basic C{dict} read/write operations
+    a bit excessive, given 1) the atomic nature of basic C{dict} read/write operations
     and  2) the fact that most of the internal data structures are keying off of the
     STOMP connection, which is going to be thread-isolated.  That said, this seems like
     the technically correct approach and should increase the chance of this code being
@@ -28,7 +30,7 @@ class RedisTopicManager(TopicManager):
 
     def __init__(self, connection: StompConnection, redis_url: str):
         super().__init__()
-        self._redis = Redis.from_url(redis_url, decode_responses=True).pubsub(ignore_subscribe_messages=True)
+        self._redis = aio_connect(redis_url, decode_responses=True).pubsub(ignore_subscribe_messages=True)
 
     def get_redis_destination(self, destination):
         dest = destination.replace('#', '*')
@@ -41,7 +43,7 @@ class RedisTopicManager(TopicManager):
         Subscribes a connection to the specified topic destination.
 
         @param connection: The client connection to subscribe.
-        @type connection: L{coilmq.server.StompConnection}
+        @type connection: L{coilmq.asyncio.server.StompConnection}
 
         @param destination: The topic destination (e.g. '/topic/foo')
         @type destination: C{str}
@@ -61,7 +63,7 @@ class RedisTopicManager(TopicManager):
         Unsubscribes a connection from the specified topic destination.
 
         @param connection: The client connection to unsubscribe.
-        @type connection: L{coilmq.server.StompConnection}
+        @type connection: L{coilmq.asyncio.server.StompConnection}
 
         @param destination: The topic destination (e.g. '/topic/foo')
         @type destination: C{str}
