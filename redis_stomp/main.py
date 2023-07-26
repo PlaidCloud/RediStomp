@@ -1,21 +1,23 @@
 import argparse
 import os
+import logging
+
 import anyio
 import uvicorn
 from uvicorn.config import LOGGING_CONFIG
-import logging
 from starlette.applications import Starlette
-from starlette.routing import WebSocketRoute
-
+from starlette.requests import Request
+from starlette.routing import Route, WebSocketRoute
 from starlette.endpoints import WebSocketEndpoint, WebSocket
 from starlette import status
-
 import coilmq.util.frames
 from coilmq.asyncio.engine import StompEngine
 from coilmq.asyncio.server import StompConnection
 from coilmq.asyncio.protocol import STOMP11
 from coilmq.util.frames import FrameBuffer
 from coilmq.exception import ClientDisconnected
+from redis.asyncio import Redis
+
 from redis_stomp.pubsub.topic import RedisTopicManager
 
 logging.basicConfig(
@@ -90,9 +92,14 @@ class StompEndpoint(WebSocketEndpoint, StompConnection):
         LOGGER.debug("SEND: %r" % heartbeat)
         await self.websocket.send_text(heartbeat)
 
+async def alive_probe(request: Request):
+    redis_con = Redis.from_url(request.app.state.redis_url, decode_responses=True).pubsub(ignore_subscribe_messages=True)
+    await redis_con.ping()
+
 
 routes = [
     WebSocketRoute("/ws", StompEndpoint, name='stomp_ws'),
+    Route('/alive', alive_probe),
 ]
 
 
