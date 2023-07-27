@@ -105,7 +105,7 @@ class RedisTopicManager(TopicManager):
                 dest = message['channel'] if message['type'] == 'message' else message['pattern']
 
                 bad_subscribers = set()
-                for subscriber in self._subscriptions.subscribers(dest):
+                for subscriber in await self._subscriptions.subscribers(dest):
                     frame = Frame(cmd=MESSAGE)
                     frame.headers.setdefault('message-id', str(uuid.uuid4()))
                     frame.headers['destination'] = TOPIC_PREFIX + message['channel']
