@@ -84,9 +84,10 @@ class StompEndpoint(WebSocketEndpoint, StompConnection):
         """ Sends a frame to connected socket client.
         """
         packed = frame.pack()
-        LOGGER.debug("SEND: %r" % packed)
+        packed_str = packed.decode()
+        LOGGER.debug("SEND: %r" % packed_str)
 
-        await self.websocket.send_text(packed)
+        await self.websocket.send_text(packed_str)
 
     async def send_heartbeat(self):
         """ Sends an EOL to connected socket client."""
