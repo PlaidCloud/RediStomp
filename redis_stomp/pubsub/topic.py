@@ -38,7 +38,7 @@ class RedisTopicManager(TopicManager):
             return dest[7:]
         return dest
 
-    async def subscribe(self, connection, destination, id=None):
+    async def subscribe(self, connection: StompConnection, destination: str, id: str = None):
         """
         Subscribes a connection to the specified topic destination.
 
@@ -47,6 +47,9 @@ class RedisTopicManager(TopicManager):
 
         @param destination: The topic destination (e.g. '/topic/foo')
         @type destination: C{str}
+
+        @param id: subscription identifier (optional)
+        @type id: C{str}
         """
         redis_destination = self.get_redis_destination(destination)
         await super().subscribe(connection, redis_destination, id)
@@ -58,17 +61,25 @@ class RedisTopicManager(TopicManager):
             await self._redis.subscribe(redis_destination)
 
 
-    async def unsubscribe(self, connection, destination, id=None):
+    async def unsubscribe(self, connection: StompConnection, destination: str = None, id: str = None):
         """
         Unsubscribes a connection from the specified topic destination.
 
         @param connection: The client connection to unsubscribe.
         @type connection: L{coilmq.asyncio.server.StompConnection}
 
-        @param destination: The topic destination (e.g. '/topic/foo')
+        @param destination: The topic destination (e.g. '/topic/foo') (optional)
         @type destination: C{str}
+
+        @param id: subscription identifier (optional)
+        @type id: C{str}
         """
-        redis_destination = self.get_redis_destination(destination)
+        if id and not destination:
+            redis_destination = self._subscriptions.destination_for_id(id)
+        else:
+            redis_destination = self.get_redis_destination(destination)
+        if not redis_destination:
+            return
         await super().unsubscribe(connection, redis_destination, id)
         if glob.has_magic(redis_destination):
             LOGGER.debug(f'PUNSUBSCRIBE: {redis_destination}')
