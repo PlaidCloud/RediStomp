@@ -1,6 +1,6 @@
 anyio==3.7.1
 coilmq@git+https://github.com/rad-pat/coilmq.git@asyncio#egg=coilmq
-redis==4.5.5
+redis==4.5.4
 starlette==0.31.0
 uvicorn==0.23.1
 websockets==10.4
