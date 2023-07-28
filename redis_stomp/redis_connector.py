@@ -1,8 +1,11 @@
 
+import socket
 from typing import List, Tuple, NamedTuple, Type
 from urllib import parse as urlparse
 
 from redis.asyncio import Redis, Sentinel
+
+CLIENT_NAME = socket.gethostname().rsplit('-', 2)[0]
 
 class ParsedRedisURL(NamedTuple):
     hosts: List[Tuple[str, int]]
@@ -129,15 +132,21 @@ def aio_connect(redis_url: str, read_only: bool = False, socket_timeout: float =
         sentinel_connection = Sentinel(
                 rinfo.hosts, socket_timeout=socket_timeout or rinfo.socket_timeout,
                 db=rinfo.database, password=rinfo.password,
-                health_check_interval=30, retry_on_timeout=True)
+                health_check_interval=30, retry_on_timeout=True,
+                client_name=CLIENT_NAME,
+        )
         if read_only:
             return sentinel_connection.slave_for(
                 rinfo.service_name, socket_timeout=socket_timeout or rinfo.socket_timeout,
-                redis_class=redis_class, decode_responses=decode_responses)
+                redis_class=redis_class, decode_responses=decode_responses,
+                client_name=CLIENT_NAME,
+            )
         else:
             return sentinel_connection.master_for(
                 rinfo.service_name, socket_timeout=socket_timeout or rinfo.socket_timeout,
-                redis_class=redis_class, decode_responses=decode_responses)
+                redis_class=redis_class, decode_responses=decode_responses,
+                client_name=CLIENT_NAME,
+            )
     else:
         # Single redis instance
         host, port = rinfo.hosts[0]
@@ -149,5 +158,6 @@ def aio_connect(redis_url: str, read_only: bool = False, socket_timeout: float =
             decode_responses=decode_responses,
             #socket_timeout=socket_timeout or rinfo.socket_timeout,
             health_check_interval=30,
-            retry_on_timeout=True
+            retry_on_timeout=True,
+            client_name=CLIENT_NAME,
         )

@@ -99,8 +99,8 @@ class StompEndpoint(WebSocketEndpoint, StompConnection):
 
 async def alive_probe(request: Request):
     async with aio_connect(
-            request.app.state.redis_url,
-            decode_responses=True,
+        request.app.state.redis_url,
+        decode_responses=True,
     ).pubsub(
         ignore_subscribe_messages=True,
     ) as redis_con:
