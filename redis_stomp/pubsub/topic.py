@@ -30,9 +30,14 @@ class RedisTopicManager(TopicManager):
 
     def __init__(self, connection: StompConnection, redis_url: str):
         super().__init__()
+        self._closing = False
+        self._closed = False
         self._redis = aio_connect(redis_url, decode_responses=True).pubsub(ignore_subscribe_messages=True)
 
     async def close(self):
+        self._closing = True
+        while not self._closed:
+            await asyncio.sleep(0.1)
         if self._redis:
             await self._redis.close()
 
@@ -95,14 +100,12 @@ class RedisTopicManager(TopicManager):
     async def next_message(self):
         # ToDo: This could be done by registering a callback on subscribe which might be more favorable, I dunno
         # await redis_pubsub.subscribe(**{ACTIVITY_CHANNEL: on_message})
-
-        message = None
-        # get_message with timeout=None can return None
-        while True:
+        while not self._closing:
             if not self._redis.subscribed:
                 await asyncio.sleep(0.5)
                 continue
-            message = await self._redis.get_message(ignore_subscribe_messages=True, timeout=None)
+            message = await self._redis.get_message(ignore_subscribe_messages=True, timeout=0.5)
+            # get_message with timeout=None can return None
             if message:
                 # print(repr(message))
                 # Lookup the subscriptions by pattern/channel
@@ -126,3 +129,5 @@ class RedisTopicManager(TopicManager):
 
                 for s in bad_subscribers:
                     await self.unsubscribe(s.connection, dest, id=s.id)
+
+        self._closed = True
