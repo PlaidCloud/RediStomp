@@ -36,14 +36,15 @@ class StompEndpoint(WebSocketEndpoint, StompConnection):
         await websocket.accept(headers=[(b'sec-websocket-protocol', b'v11.stomp')])
 
         close_code = status.WS_1000_NORMAL_CLOSURE
-        app = self.scope["app"]
+
         try:
             self.buffer = FrameBuffer()
+            self.topic_manager = RedisTopicManager(self, self.scope["app"].state.redis_url)
             self.stomp_engine = StompEngine(
                 connection=self,
                 authenticator=None,  # ToDo: perhaps basic auth
                 queue_manager=None,
-                topic_manager=RedisTopicManager(self, app.state.redis_url),
+                topic_manager=self.topic_manager,
                 protocol=STOMP11,  # Note, this matches the protocol in the websocket accept above, but it should be negotiated
             )
 
@@ -64,6 +65,7 @@ class StompEndpoint(WebSocketEndpoint, StompConnection):
             raise exc
         finally:
             await self.stomp_engine.unbind()
+            await self.topic_manager.close()
             await self.on_disconnect(websocket, close_code)
 
     async def ws_receiver(self, websocket: WebSocket):
@@ -96,8 +98,13 @@ class StompEndpoint(WebSocketEndpoint, StompConnection):
         await self.websocket.send_text(heartbeat)
 
 async def alive_probe(request: Request):
-    redis_con = aio_connect(request.app.state.redis_url, decode_responses=True).pubsub(ignore_subscribe_messages=True)
-    await redis_con.ping()
+    async with aio_connect(
+            request.app.state.redis_url,
+            decode_responses=True,
+    ).pubsub(
+        ignore_subscribe_messages=True,
+    ) as redis_con:
+        await redis_con.ping()
     return Response()
 
 

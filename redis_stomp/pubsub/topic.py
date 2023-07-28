@@ -32,6 +32,10 @@ class RedisTopicManager(TopicManager):
         super().__init__()
         self._redis = aio_connect(redis_url, decode_responses=True).pubsub(ignore_subscribe_messages=True)
 
+    async def close(self):
+        if self._redis:
+            await self._redis.close()
+
     def get_redis_destination(self, destination):
         dest = destination.replace('#', '*')
         if dest.startswith(TOPIC_PREFIX):
