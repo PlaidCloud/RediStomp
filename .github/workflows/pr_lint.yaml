@@ -18,7 +18,7 @@ jobs:
       - name: Acquire list of changed python files
         id: all-python-files
         continue-on-error: true
-        uses: tj-actions/changed-files@v35
+        uses: tj-actions/changed-files@v37
         with:
           files: |
             **/*.py

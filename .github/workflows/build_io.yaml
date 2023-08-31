@@ -52,32 +52,23 @@ jobs:
           path: infrastructure
           token: ${{ secrets.GITOPS_REPO_ACCESS }}
 
-      - name: Update Control Plane Image
+      - name: Update Control Plane & Tenant Image
         uses: fjogeleit/yaml-update-action@main
         with:
-          valueFile: 'controlplane/environment-values/ci-cluster.yaml'
+          # valueFile: 'controlplane/environment-values/ci-cluster.yaml'
           repository: PlaidCloud/plaid-tenant-applications
           branch: master
-          message: 'Update Control Plane Image to ${{ steps.docker_tag.outputs.tag }}'
+          message: 'Update STOMP Image to ${{ steps.docker_tag.outputs.tag }}'
           token: ${{ secrets.GITOPS_REPO_ACCESS }}
           workDir: infrastructure
           changes: |
             {
-              "apps.stomp.image": "gcr.io/plaidcloud-build/redistomp:${{ steps.docker_tag.outputs.tag }}"
-            }
-
-      - name: Update Tenant Image
-        uses: fjogeleit/yaml-update-action@main
-        with:
-          valueFile: 'tenants/values.yaml'
-          repository: PlaidCloud/plaid-tenant-applications
-          branch: master
-          message: 'Update Tenant Image to ${{ steps.docker_tag.outputs.tag }}'
-          token: ${{ secrets.GITOPS_REPO_ACCESS }}
-          workDir: infrastructure
-          changes: |
-            {
-              "apps.stomp.image": "gcr.io/plaidcloud-build/redistomp:${{ steps.docker_tag.outputs.tag }}"
+              "controlplane/environment-values/ci-cluster.yaml": {
+                "apps.stomp.image": "gcr.io/plaidcloud-build/redistomp:${{ steps.docker_tag.outputs.tag }}"
+              },
+              "tenants/values.yaml": {
+                "apps.stomp.image": "gcr.io/plaidcloud-build/redistomp:${{ steps.docker_tag.outputs.tag }}"
+              }
             }
 
       - name: Trigger ArgoCD Sync for CI Control Plane App
@@ -89,4 +80,4 @@ jobs:
           ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_AUTH_TOKEN }}
         with:
           command: app sync ci-cluster-controlplane
-          options: --grpc-web --prune
+          options: --grpc-web --prune --async
