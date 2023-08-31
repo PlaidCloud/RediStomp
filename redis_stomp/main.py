@@ -132,7 +132,7 @@ def main():
     try:
         LOGGING_CONFIG["formatters"]["default"]["fmt"] = "%(asctime)s [%(name)s] %(levelprefix)s %(message)s"
         app.state.redis_url = args.redis
-        uvicorn.run(app, host="0.0.0.0", port=args.port, access_log=False, proxy_headers=True, forwarded_allow_ips='*', log_level='debug')
+        uvicorn.run(app, host="0.0.0.0", port=args.port, access_log=False, proxy_headers=True, forwarded_allow_ips='*', log_level=logging.getLevelNamesMapping()[LOG_LEVEL])
     except KeyboardInterrupt:
         pass
     except Exception as e:
