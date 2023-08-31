@@ -22,9 +22,12 @@ from redis.asyncio import Redis
 from redis_stomp.pubsub.topic import RedisTopicManager
 from redis_stomp.redis_connector import aio_connect
 
+
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
+
 logging.basicConfig(
-    level = logging.DEBUG,
-    format = "[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s",
+    level=LOG_LEVEL,
+    format="[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s",
 )
 
 LOGGER = logging.getLogger(__name__)
