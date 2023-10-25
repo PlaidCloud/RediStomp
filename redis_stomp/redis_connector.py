@@ -3,9 +3,13 @@ import socket
 from typing import List, Tuple, NamedTuple, Type
 from urllib import parse as urlparse
 
-from redis.asyncio import Redis, Sentinel
+import redis
+from redis.asyncio import Redis, Sentinel, RedisCluster
+from redis.asyncio.retry import Retry
+from redis.backoff import FullJitterBackoff
 
 CLIENT_NAME = socket.gethostname().rsplit('-', 2)[0]
+DEFAULT_RETRY_ERRORS = [TimeoutError, socket.timeout, redis.TimeoutError, redis.ConnectionError]  # Needed for async version to add socket timeout
 
 class ParsedRedisURL(NamedTuple):
     hosts: List[Tuple[str, int]]
@@ -127,12 +131,30 @@ def aio_connect(redis_url: str, read_only: bool = False, socket_timeout: float =
         redis.asyncio.client.Redis: Redis connection
     """
     rinfo = parse_url(redis_url)
-    if rinfo.sentinel:
+    if rinfo.cluster:
+        host, port = rinfo.hosts[0]
+        cluster_retry = Retry(FullJitterBackoff(), 1)
+        cluster_retry.update_supported_errors(DEFAULT_RETRY_ERRORS)   # can't pass retry_on_timeout to async cluster
+        return RedisCluster(
+            host=host,
+            port=port,
+            # client params
+            db=rinfo.database,
+            password=rinfo.password,
+            decode_responses=decode_responses,
+            socket_timeout=socket_timeout or rinfo.socket_timeout,
+            health_check_interval=30,
+            retry=cluster_retry,
+            client_name=CLIENT_NAME,
+        )
+    elif rinfo.sentinel:
         # We're connecting to a sentinel cluster.
         sentinel_connection = Sentinel(
                 rinfo.hosts, socket_timeout=socket_timeout or rinfo.socket_timeout,
                 db=rinfo.database, password=rinfo.password,
-                health_check_interval=30, retry_on_timeout=True,
+                health_check_interval=30,
+                retry_on_timeout=True,  # required for retry on socket timeout for the async class
+                retry=Retry(FullJitterBackoff(), 1),
                 client_name=CLIENT_NAME,
         )
         if read_only:
@@ -156,8 +178,8 @@ def aio_connect(redis_url: str, read_only: bool = False, socket_timeout: float =
             db=rinfo.database,
             password=rinfo.password,
             decode_responses=decode_responses,
-            #socket_timeout=socket_timeout or rinfo.socket_timeout,
-            health_check_interval=30,
-            retry_on_timeout=True,
+            socket_timeout=socket_timeout or rinfo.socket_timeout,
+            retry_on_timeout=True,  # required for retry on socket timeout for the async class
+            retry=Retry(FullJitterBackoff(), 1),
             client_name=CLIENT_NAME,
         )
