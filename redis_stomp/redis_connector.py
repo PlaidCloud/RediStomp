@@ -1,6 +1,6 @@
 
 import socket
-from typing import List, Tuple, NamedTuple, Type
+from typing import List, Tuple, NamedTuple, Type, TypeVar
 from urllib import parse as urlparse
 
 import redis
@@ -8,6 +8,7 @@ from redis.asyncio import Redis, Sentinel, RedisCluster
 from redis.asyncio.retry import Retry
 from redis.backoff import FullJitterBackoff
 
+R = TypeVar('R', bound=redis.Redis)
 CLIENT_NAME = socket.gethostname().rsplit('-', 2)[0]
 DEFAULT_RETRY_ERRORS = [TimeoutError, socket.timeout, redis.TimeoutError, redis.ConnectionError]  # Needed for async version to add socket timeout
 
@@ -114,6 +115,71 @@ def parse_url(url: str) -> ParsedRedisURL:
         service_name=service_name,
         database=db,
     )
+
+
+def connect(redis_url: str,  read_only: bool = False, socket_timeout: float = None,
+            redis_class: Type[R] = redis.Redis, decode_responses: bool = False) -> [R, redis.RedisCluster]:
+    """Returns a synchronous redis-py connection
+
+    Args:
+        redis_url (str): The Redis connection url
+        read_only (bool): If true, the connection will be made to the master node, else to a slave node
+        socket_timeout (float): Socket timeout threshold
+        redis_class (Type[redis.Redis]):
+        decode_responses (bool): Redis connection kwarg for whether or not to decode_responses
+
+    Returns:
+        R: Redis connection
+    """
+    rinfo = parse_url(redis_url)
+    if rinfo.cluster:
+        host, port = rinfo.hosts[0]
+        return redis.RedisCluster(
+            host=host,
+            port=port,
+            # client params
+            # db=rinfo.database,
+            password=rinfo.password,
+            decode_responses=decode_responses,
+            socket_timeout=socket_timeout or rinfo.socket_timeout,
+            health_check_interval=30,
+            retry=Retry(FullJitterBackoff(), 1),
+            client_name=CLIENT_NAME,
+        )
+
+    elif rinfo.sentinel:  # We're connecting to a sentinel cluster.
+        sentinel_connection = redis.Sentinel(
+                rinfo.hosts, socket_timeout=socket_timeout or rinfo.socket_timeout,
+                db=rinfo.database, password=rinfo.password,
+                health_check_interval=30,
+                retry=Retry(FullJitterBackoff(), 1),
+                client_name=CLIENT_NAME,
+        )
+        if read_only:
+            return sentinel_connection.slave_for(
+                rinfo.service_name, socket_timeout=socket_timeout or rinfo.socket_timeout,
+                redis_class=redis_class, decode_responses=decode_responses,
+                client_name=CLIENT_NAME,
+            )
+        else:
+            return sentinel_connection.master_for(
+                rinfo.service_name, socket_timeout=socket_timeout or rinfo.socket_timeout,
+                redis_class=redis_class, decode_responses=decode_responses,
+                client_name=CLIENT_NAME,
+            )
+    else:  # Single redis instance
+        host, port = rinfo.hosts[0]
+        return redis_class(
+            host=host,
+            port=port,
+            db=rinfo.database,
+            password=rinfo.password,
+            decode_responses=decode_responses,
+            socket_timeout=socket_timeout or rinfo.socket_timeout,
+            health_check_interval=30,
+            retry=Retry(FullJitterBackoff(), 1),
+            client_name=CLIENT_NAME,
+        )
 
 
 def aio_connect(redis_url: str, read_only: bool = False, socket_timeout: float = None,
