@@ -34,6 +34,10 @@ class RedisTopicManager(TopicManager):
         self._closed = False
         self._redis = connect(redis_url, decode_responses=True).pubsub(ignore_subscribe_messages=True)
 
+    async def disconnect(self, connection: StompConnection):
+        await super().disconnect(connection)
+        await self.close()
+
     async def close(self):
         self._closing = True
         while not self._closed:
