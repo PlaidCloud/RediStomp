@@ -4,6 +4,7 @@ from typing import List, Tuple, NamedTuple, Type, TypeVar
 from urllib import parse as urlparse
 
 import redis
+import redis.retry
 from redis.asyncio import Redis, Sentinel, RedisCluster
 from redis.asyncio.retry import Retry
 from redis.backoff import FullJitterBackoff
@@ -143,7 +144,7 @@ def connect(redis_url: str,  read_only: bool = False, socket_timeout: float = No
             decode_responses=decode_responses,
             socket_timeout=socket_timeout or rinfo.socket_timeout,
             health_check_interval=30,
-            retry=Retry(FullJitterBackoff(), 1),
+            retry=redis.retry.Retry(FullJitterBackoff(), 1),
             client_name=CLIENT_NAME,
         )
 
@@ -152,7 +153,7 @@ def connect(redis_url: str,  read_only: bool = False, socket_timeout: float = No
                 rinfo.hosts, socket_timeout=socket_timeout or rinfo.socket_timeout,
                 db=rinfo.database, password=rinfo.password,
                 health_check_interval=30,
-                retry=Retry(FullJitterBackoff(), 1),
+                retry=redis.retry.Retry(FullJitterBackoff(), 1),
                 client_name=CLIENT_NAME,
         )
         if read_only:
@@ -177,7 +178,7 @@ def connect(redis_url: str,  read_only: bool = False, socket_timeout: float = No
             decode_responses=decode_responses,
             socket_timeout=socket_timeout or rinfo.socket_timeout,
             health_check_interval=30,
-            retry=Retry(FullJitterBackoff(), 1),
+            retry=redis.retry.Retry(FullJitterBackoff(), 1),
             client_name=CLIENT_NAME,
         )
 
