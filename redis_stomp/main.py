@@ -1,6 +1,7 @@
 import argparse
 import os
 import logging
+import asyncio
 
 import anyio
 import uvicorn
@@ -20,8 +21,7 @@ from coilmq.exception import ClientDisconnected
 from redis.asyncio import Redis
 
 from redis_stomp.pubsub.topic import RedisTopicManager
-from redis_stomp.redis_connector import aio_connect
-
+from redis_stomp.redis_connector import aio_connect, connect
 
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 
@@ -101,13 +101,13 @@ class StompEndpoint(WebSocketEndpoint, StompConnection):
         await self.websocket.send_text(heartbeat)
 
 async def alive_probe(request: Request):
-    async with aio_connect(
+    with connect(
         request.app.state.redis_url,
         decode_responses=True,
     ).pubsub(
         ignore_subscribe_messages=True,
     ) as redis_con:
-        await redis_con.ping()
+        await asyncio.to_thread(redis_con.ping)
     return Response()
 
 
