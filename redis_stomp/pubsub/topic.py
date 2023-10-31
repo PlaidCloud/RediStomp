@@ -7,7 +7,7 @@ from coilmq.asyncio.topic import TopicManager
 from coilmq.asyncio.server import StompConnection
 from coilmq.util.frames import Frame, MESSAGE
 
-from redis_stomp.redis_connector import aio_connect
+from redis_stomp.redis_connector import aio_connect, connect
 
 
 LOGGER = logging.getLogger(__name__)
@@ -32,14 +32,14 @@ class RedisTopicManager(TopicManager):
         super().__init__()
         self._closing = False
         self._closed = False
-        self._redis = aio_connect(redis_url, decode_responses=True).pubsub(ignore_subscribe_messages=True)
+        self._redis = connect(redis_url, decode_responses=True).pubsub(ignore_subscribe_messages=True)
 
     async def close(self):
         self._closing = True
         while not self._closed:
             await asyncio.sleep(0.1)
         if self._redis:
-            await self._redis.close()
+            await asyncio.to_thread(self._redis.close)
 
     def get_redis_destination(self, destination):
         dest = destination.replace('#', '*')
@@ -64,10 +64,10 @@ class RedisTopicManager(TopicManager):
         await super().subscribe(connection, redis_destination, id)
         if glob.has_magic(redis_destination):
             LOGGER.debug(f'PSUBSCRIBE: {redis_destination}')
-            await self._redis.psubscribe(redis_destination)
+            await asyncio.to_thread(self._redis.psubscribe, redis_destination)
         else:
             LOGGER.debug(f'SUBSCRIBE: {redis_destination}')
-            await self._redis.subscribe(redis_destination)
+            await asyncio.to_thread(self._redis.subscribe, redis_destination)
 
 
     async def unsubscribe(self, connection: StompConnection, destination: str = None, id: str = None):
@@ -92,10 +92,10 @@ class RedisTopicManager(TopicManager):
         await super().unsubscribe(connection, redis_destination, id)
         if glob.has_magic(redis_destination):
             LOGGER.debug(f'PUNSUBSCRIBE: {redis_destination}')
-            await self._redis.punsubscribe(redis_destination)
+            await asyncio.to_thread(self._redis.punsubscribe, redis_destination)
         else:
             LOGGER.debug(f'UNSUBSCRIBE: {redis_destination}')
-            await self._redis.unsubscribe(redis_destination)
+            await asyncio.to_thread(self._redis.unsubscribe, redis_destination)
 
     async def next_message(self):
         # ToDo: This could be done by registering a callback on subscribe which might be more favorable, I dunno
@@ -104,7 +104,7 @@ class RedisTopicManager(TopicManager):
             if not self._redis.subscribed:
                 await asyncio.sleep(0.5)
                 continue
-            message = await self._redis.get_message(ignore_subscribe_messages=True, timeout=0.5)
+            message = await asyncio.to_thread(self._redis.get_message, ignore_subscribe_messages=True, timeout=0.5)
             # get_message with timeout=None can return None
             if message:
                 # print(repr(message))
