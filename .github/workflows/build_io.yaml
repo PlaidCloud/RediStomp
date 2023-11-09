@@ -46,7 +46,7 @@ jobs:
       - name: Checkout GitOps Repository
         uses: actions/checkout@v3
         with:
-          repository: PlaidCloud/plaid-tenant-applications
+          repository: PlaidCloud/plaid-tenant-infrastructure
           ref: master
           fetch-depth: '1'
           path: infrastructure
@@ -56,14 +56,14 @@ jobs:
         uses: fjogeleit/yaml-update-action@main
         with:
           # valueFile: 'controlplane/environment-values/ci-cluster.yaml'
-          repository: PlaidCloud/plaid-tenant-applications
+          repository: PlaidCloud/plaid-tenant-infrastructure
           branch: master
           message: 'Update STOMP Image to ${{ steps.docker_tag.outputs.tag }}'
           token: ${{ secrets.GITOPS_REPO_ACCESS }}
           workDir: infrastructure
           changes: |
             {
-              "controlplane/environment-values/ci-cluster.yaml": {
+              "controlplane/values.yaml": {
                 "apps.stomp.image": "gcr.io/plaidcloud-build/redistomp:${{ steps.docker_tag.outputs.tag }}"
               },
               "tenants/values.yaml": {
