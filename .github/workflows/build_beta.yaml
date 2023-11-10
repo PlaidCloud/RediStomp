@@ -1,0 +1,72 @@
+name: Beta Deployment
+on:
+  push:
+    branches:
+      - beta-*
+jobs:
+  build-io:
+    name: Beta Deployment
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Ensure python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Install dependencies
+        run: pip install -r requirements.txt; pip install pylint==${{ secrets.PYLINT_VERSION }}
+      - name: Run lint
+        run: pylint redis_stomp -E
+      - name: Create tag
+        id: docker_tag
+        run: |
+          commit_tag=${GITHUB_REF#refs/*/}
+          echo "tag=${commit_tag}-${{ github.run_number }}" >> $GITHUB_OUTPUT
+      - name: Verify tag
+        run: echo ${{ steps.docker_tag.outputs.tag }}
+      - name: Login to GCR
+        uses: docker/login-action@v2
+        with:
+          registry: gcr.io
+          username: _json_key
+          password: ${{ secrets.GCR_JSON_KEY }}
+      - name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v3
+        with:
+          push: true
+          pull: true
+          no-cache: true
+          build-args: |
+            RUN_AS_USER=plaid
+          tags: gcr.io/plaidcloud-build/redistomp:latest,gcr.io/plaidcloud-build/redistomp:${{ steps.docker_tag.outputs.tag }}
+
+      - name: Checkout GitOps Repository
+        uses: actions/checkout@v3
+        with:
+          repository: PlaidCloud/plaid-tenant-infrastructure
+          ref: beta
+          fetch-depth: '1'
+          path: infrastructure
+          token: ${{ secrets.GITOPS_REPO_ACCESS }}
+
+      - name: Update Control Plane & Tenant Image
+        uses: fjogeleit/yaml-update-action@main
+        with:
+          # valueFile: 'controlplane/environment-values/ci-cluster.yaml'
+          repository: PlaidCloud/plaid-tenant-infrastructure
+          branch: beta
+          message: 'Update STOMP Image to ${{ steps.docker_tag.outputs.tag }}'
+          token: ${{ secrets.GITOPS_REPO_ACCESS }}
+          workDir: infrastructure
+          changes: |
+            {
+              "controlplane/values.yaml": {
+                "apps.stomp.image": "gcr.io/plaidcloud-build/redistomp:${{ steps.docker_tag.outputs.tag }}"
+              },
+              "tenants/values.yaml": {
+                "apps.stomp.image": "gcr.io/plaidcloud-build/redistomp:${{ steps.docker_tag.outputs.tag }}"
+              }
+            }
