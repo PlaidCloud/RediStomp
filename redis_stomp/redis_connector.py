@@ -157,7 +157,6 @@ def connect(redis_url: str,  read_only: bool = False, socket_timeout: float = No
         sentinel_connection = redis.Sentinel(
             rinfo.hosts,
             sentinel_kwargs={
-                'retry_on_timeout': True,  # required for retry on socket timeout for the async class
                 'retry': redis.retry.Retry(NoBackoff(), min_retries),
                 'socket_timeout': socket_timeout or rinfo.socket_timeout,
                 'health_check_interval': 30,
@@ -167,7 +166,6 @@ def connect(redis_url: str,  read_only: bool = False, socket_timeout: float = No
             db=rinfo.database,
             password=rinfo.password,
             health_check_interval=30,
-            retry_on_timeout=True,  # required for retry on socket timeout for the async class
             retry=redis.retry.Retry(FullJitterBackoff(), 1),
             client_name=CLIENT_NAME,
         )
@@ -235,24 +233,41 @@ def aio_connect(redis_url: str, read_only: bool = False, socket_timeout: float =
         )
     elif rinfo.sentinel:
         # We're connecting to a sentinel cluster.
+        min_retries = max([
+            len(socket.getaddrinfo(host, port, type=socket.SOCK_STREAM))
+            for host, port in rinfo.hosts
+        ])
         sentinel_connection = Sentinel(
-                rinfo.hosts, socket_timeout=socket_timeout or rinfo.socket_timeout,
-                db=rinfo.database, password=rinfo.password,
-                health_check_interval=30,
-                retry_on_timeout=True,  # required for retry on socket timeout for the async class
-                retry=Retry(FullJitterBackoff(), 1),
-                client_name=CLIENT_NAME,
+            rinfo.hosts,
+            sentinel_kwargs={
+                'retry_on_timeout': True,  # required for retry on socket timeout for the async class
+                'retry': Retry(NoBackoff(), min_retries),
+                'socket_timeout': socket_timeout or rinfo.socket_timeout,
+                'health_check_interval': 30,
+                'client_name': CLIENT_NAME,
+            },
+            ## connection kwargs that will be applied to masters/slaves if not overridden
+            db=rinfo.database,
+            password=rinfo.password,
+            health_check_interval=30,
+            retry_on_timeout=True,  # required for retry on socket timeout for the async class
+            retry=Retry(FullJitterBackoff(), 1),
+            client_name=CLIENT_NAME,
         )
         if read_only:
             return sentinel_connection.slave_for(
-                rinfo.service_name, socket_timeout=socket_timeout or rinfo.socket_timeout,
-                redis_class=redis_class, decode_responses=decode_responses,
+                rinfo.service_name,
+                redis_class=redis_class,
+                socket_timeout=socket_timeout or rinfo.socket_timeout,
+                decode_responses=decode_responses,
                 client_name=CLIENT_NAME,
             )
         else:
             return sentinel_connection.master_for(
-                rinfo.service_name, socket_timeout=socket_timeout or rinfo.socket_timeout,
-                redis_class=redis_class, decode_responses=decode_responses,
+                rinfo.service_name,
+                redis_class=redis_class,
+                socket_timeout=socket_timeout or rinfo.socket_timeout,
+                decode_responses=decode_responses,
                 client_name=CLIENT_NAME,
             )
     else:
