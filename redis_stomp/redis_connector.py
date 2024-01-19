@@ -31,7 +31,7 @@ def parse_url(url: str) -> ParsedRedisURL:
     url = urlparse.urlparse(url)
 
     def is_sentinel():
-        return url.scheme == 'redis+sentinel' or url.scheme == 'sentinel'
+        return url.scheme == 'redis+sentinel' or url.scheme == 'sentinel' or url.scheme == 'sentinel+headless'
 
     def is_headless():
         return 'headless' in url.scheme
