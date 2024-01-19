@@ -11,7 +11,7 @@ from redis.backoff import FullJitterBackoff, NoBackoff
 
 R = TypeVar('R', bound=redis.Redis)
 CLIENT_NAME = socket.gethostname().rsplit('-', 2)[0]
-DEFAULT_RETRY_ERRORS = [TimeoutError, socket.timeout, redis.TimeoutError, redis.ConnectionError]  # Needed for async version to add socket timeout
+DEFAULT_RETRY_ERRORS = (TimeoutError, socket.timeout, redis.TimeoutError, redis.ConnectionError)  # Needed for async version to add socket timeout
 
 class ParsedRedisURL(NamedTuple):
     hosts: List[Tuple[str, int]]
@@ -368,7 +368,7 @@ def aio_connect(redis_url: str, read_only: bool = False, socket_timeout: float =
     if rinfo.cluster:
         host, port = rinfo.hosts[0]
         cluster_retry = Retry(FullJitterBackoff(), 1)
-        cluster_retry.update_supported_errors(DEFAULT_RETRY_ERRORS)   # can't pass retry_on_timeout to async cluster
+        cluster_retry.update_supported_errors(list(DEFAULT_RETRY_ERRORS))   # can't pass retry_on_timeout to async cluster
         return RedisCluster(
             host=host,
             port=port,
