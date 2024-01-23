@@ -150,7 +150,7 @@ class HeadlessSentinel(Sentinel):
     def refresh_sentinels(self):
         self.sentinels = [
             Redis(host=ip, port=self.port, **self.sentinel_kwargs)
-            for ip, port in self.sentinels_from_headless_host()
+            for ip in self.sentinels_from_headless_host()
         ]
 
     # async def execute_command(self, *args, **kwargs):
@@ -211,7 +211,7 @@ class HeadlessSentinelSync(redis.Sentinel):
     def refresh_sentinels(self):
         self.sentinels = [
             redis.Redis(host=ip, port=self.port, **self.sentinel_kwargs)
-            for ip, port in self.sentinels_from_headless_host()
+            for ip in self.sentinels_from_headless_host()
         ]
     #
     # async def execute_command(self, *args, **kwargs):
@@ -393,7 +393,7 @@ def aio_connect(redis_url: str, read_only: bool = False, socket_timeout: float =
                 rinfo.hosts[0][1],
                 min_other_sentinels=rinfo.quorum or 0,
                 sentinel_kwargs={
-                    'retry': redis.retry.Retry(NoBackoff(), 3),
+                    'retry': Retry(NoBackoff(), 3),
                     'socket_timeout': socket_timeout or rinfo.socket_timeout,
                     'health_check_interval': 30,
                     'client_name': CLIENT_NAME,
@@ -402,7 +402,7 @@ def aio_connect(redis_url: str, read_only: bool = False, socket_timeout: float =
                 db=rinfo.database,
                 password=rinfo.password,
                 health_check_interval=30,
-                retry=redis.retry.Retry(FullJitterBackoff(), 1),
+                retry=Retry(FullJitterBackoff(), 1),
                 client_name=CLIENT_NAME,
             )
         else:
