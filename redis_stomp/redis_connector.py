@@ -12,6 +12,7 @@ from redis.backoff import FullJitterBackoff, NoBackoff
 R = TypeVar('R', bound=redis.Redis)
 CLIENT_NAME = socket.gethostname().rsplit('-', 2)[0]
 DEFAULT_RETRY_ERRORS = (TimeoutError, socket.timeout, redis.TimeoutError, redis.ConnectionError)  # Needed for async version to add socket timeout
+REDIS_HEALTH_CHECK_INTERVAL = 3
 
 class ParsedRedisURL(NamedTuple):
     hosts: List[Tuple[str, int]]
@@ -273,7 +274,7 @@ def connect(redis_url: str,  read_only: bool = False, socket_timeout: float = No
             password=rinfo.password,
             decode_responses=decode_responses,
             socket_timeout=socket_timeout or rinfo.socket_timeout,
-            health_check_interval=30,
+            health_check_interval=REDIS_HEALTH_CHECK_INTERVAL,
             retry=redis.retry.Retry(FullJitterBackoff(), 1),
             client_name=CLIENT_NAME,
         )
@@ -292,13 +293,13 @@ def connect(redis_url: str,  read_only: bool = False, socket_timeout: float = No
                 sentinel_kwargs={
                     'retry': redis.retry.Retry(NoBackoff(), 3),
                     'socket_timeout': socket_timeout or rinfo.socket_timeout,
-                    'health_check_interval': 30,
+                    'health_check_interval': REDIS_HEALTH_CHECK_INTERVAL,
                     'client_name': CLIENT_NAME,
                 },
                 ## connection kwargs that will be applied to masters/slaves if not overridden
                 db=rinfo.database,
                 password=rinfo.password,
-                health_check_interval=30,
+                health_check_interval=REDIS_HEALTH_CHECK_INTERVAL,
                 retry=redis.retry.Retry(FullJitterBackoff(), 1),
                 client_name=CLIENT_NAME,
             )
@@ -309,13 +310,13 @@ def connect(redis_url: str,  read_only: bool = False, socket_timeout: float = No
                 sentinel_kwargs={
                     'retry': redis.retry.Retry(NoBackoff(), 3),
                     'socket_timeout': socket_timeout or rinfo.socket_timeout,
-                    'health_check_interval': 30,
+                    'health_check_interval': REDIS_HEALTH_CHECK_INTERVAL,
                     'client_name': CLIENT_NAME,
                 },
                 ## connection kwargs that will be applied to masters/slaves if not overridden
                 db=rinfo.database,
                 password=rinfo.password,
-                health_check_interval=30,
+                health_check_interval=REDIS_HEALTH_CHECK_INTERVAL,
                 retry=redis.retry.Retry(FullJitterBackoff(), 1),
                 client_name=CLIENT_NAME,
             )
@@ -344,7 +345,7 @@ def connect(redis_url: str,  read_only: bool = False, socket_timeout: float = No
             password=rinfo.password,
             decode_responses=decode_responses,
             socket_timeout=socket_timeout or rinfo.socket_timeout,
-            health_check_interval=30,
+            health_check_interval=REDIS_HEALTH_CHECK_INTERVAL,
             retry=redis.retry.Retry(FullJitterBackoff(), 1),
             client_name=CLIENT_NAME,
         )
@@ -377,7 +378,7 @@ def aio_connect(redis_url: str, read_only: bool = False, socket_timeout: float =
             password=rinfo.password,
             decode_responses=decode_responses,
             socket_timeout=socket_timeout or rinfo.socket_timeout,
-            health_check_interval=30,
+            health_check_interval=REDIS_HEALTH_CHECK_INTERVAL,
             retry=cluster_retry,
             client_name=CLIENT_NAME,
         )
@@ -395,13 +396,13 @@ def aio_connect(redis_url: str, read_only: bool = False, socket_timeout: float =
                 sentinel_kwargs={
                     'retry': redis.retry.Retry(NoBackoff(), 3),
                     'socket_timeout': socket_timeout or rinfo.socket_timeout,
-                    'health_check_interval': 30,
+                    'health_check_interval': REDIS_HEALTH_CHECK_INTERVAL,
                     'client_name': CLIENT_NAME,
                 },
                 ## connection kwargs that will be applied to masters/slaves if not overridden
                 db=rinfo.database,
                 password=rinfo.password,
-                health_check_interval=30,
+                health_check_interval=REDIS_HEALTH_CHECK_INTERVAL,
                 retry=redis.retry.Retry(FullJitterBackoff(), 1),
                 client_name=CLIENT_NAME,
             )
@@ -412,13 +413,13 @@ def aio_connect(redis_url: str, read_only: bool = False, socket_timeout: float =
                     'retry_on_timeout': True,  # required for retry on socket timeout for the async class
                     'retry': Retry(NoBackoff(), 3),
                     'socket_timeout': socket_timeout or rinfo.socket_timeout,
-                    'health_check_interval': 30,
+                    'health_check_interval': REDIS_HEALTH_CHECK_INTERVAL,
                     'client_name': CLIENT_NAME,
                 },
                 ## connection kwargs that will be applied to masters/slaves if not overridden
                 db=rinfo.database,
                 password=rinfo.password,
-                health_check_interval=30,
+                health_check_interval=REDIS_HEALTH_CHECK_INTERVAL,
                 retry_on_timeout=True,  # required for retry on socket timeout for the async class
                 retry=Retry(FullJitterBackoff(), 1),
                 client_name=CLIENT_NAME,
