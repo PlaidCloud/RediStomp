@@ -5,6 +5,7 @@ from urllib import parse as urlparse
 
 import redis
 import redis.retry
+from redis.asyncio.sentinel import MasterNotFoundError as aioMasterNotFoundError
 from redis.asyncio import Redis, Sentinel, RedisCluster
 from redis.asyncio.retry import Retry
 from redis.backoff import FullJitterBackoff, NoBackoff
@@ -172,7 +173,7 @@ class HeadlessSentinel(Sentinel):
     async def discover_master(self, service_name, has_refreshed: bool = False):
         try:
             return await super().discover_master(service_name)
-        except DEFAULT_RETRY_ERRORS:
+        except DEFAULT_RETRY_ERRORS + (aioMasterNotFoundError,):
             if not has_refreshed:
                 self.refresh_sentinels()
                 return await self.discover_master(service_name, True)
