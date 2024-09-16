@@ -94,12 +94,13 @@ class RedisTopicManager(TopicManager):
         if not redis_destination:
             return
         await super().unsubscribe(connection, redis_destination, id)
-        if glob.has_magic(redis_destination):
-            LOGGER.debug(f'PUNSUBSCRIBE: {redis_destination}')
-            await asyncio.to_thread(self._redis.punsubscribe, redis_destination)
-        else:
-            LOGGER.debug(f'UNSUBSCRIBE: {redis_destination}')
-            await asyncio.to_thread(self._redis.unsubscribe, redis_destination)
+        if await self._subscriptions.subscriber_count(redis_destination) == 0:
+            if glob.has_magic(redis_destination):
+                LOGGER.debug(f'PUNSUBSCRIBE: {redis_destination}')
+                await asyncio.to_thread(self._redis.punsubscribe, redis_destination)
+            else:
+                LOGGER.debug(f'UNSUBSCRIBE: {redis_destination}')
+                await asyncio.to_thread(self._redis.unsubscribe, redis_destination)
 
     async def next_message(self):
         # ToDo: This could be done by registering a callback on subscribe which might be more favorable, I dunno
