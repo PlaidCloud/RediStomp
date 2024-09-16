@@ -1,8 +1,8 @@
-name: Lint PlaidCloud RPC Service
+name: Lint RediStomp Service
 on:
   pull_request:
     branches:
-      - master
+      - main
 jobs:
   reviewdog:
     name: Lint RediStomp w ReviewDog
@@ -45,4 +45,4 @@ jobs:
         env:
           REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          pylint -s n -f text -E plaid 2>&1 | reviewdog -efm="%f:%l:%c: %m" -name="PyLint Errors" -reporter=github-check -filter-mode=nofilter -fail-on-error
+          pylint -s n -f text -E redis_stomp 2>&1 | reviewdog -efm="%f:%l:%c: %m" -name="PyLint Errors" -reporter=github-check -filter-mode=nofilter -fail-on-error
