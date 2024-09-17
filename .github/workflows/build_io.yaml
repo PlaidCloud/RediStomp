@@ -70,13 +70,13 @@ jobs:
               }
             }
 
-      - name: Trigger ArgoCD Sync for CI Control Plane App
-        uses: clowdhaus/argo-cd-action/@main
-        timeout-minutes: 1
-        env:
-          ARGOCD_SERVER: deploy.plaidcloud.io
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # This might not be needed - Mostly used to avoid rate limiting
-          ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_AUTH_TOKEN }}
-        with:
-          command: app sync ci-cluster-controlplane
-          options: --grpc-web --prune --async
+#      - name: Trigger ArgoCD Sync for CI Control Plane App
+#        uses: clowdhaus/argo-cd-action/@main
+#        timeout-minutes: 1
+#        env:
+#          ARGOCD_SERVER: deploy.plaidcloud.io
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # This might not be needed - Mostly used to avoid rate limiting
+#          ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_AUTH_TOKEN }}
+#        with:
+#          command: app sync ci-cluster-controlplane
+#          options: --grpc-web --prune --async
