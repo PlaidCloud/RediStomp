@@ -23,7 +23,7 @@ jobs:
         id: docker_tag
         run: |
           commit_tag=${GITHUB_REF#refs/*/}
-          echo "tag=${commit_tag}-${{ github.run_number }}" >> $GITHUB_OUTPUT
+          echo "tag=${commit_tag}-${{ github.run_number }}-${{ github.run_attempt }}" >> $GITHUB_OUTPUT
       - name: Verify tag
         run: echo ${{ steps.docker_tag.outputs.tag }}
       - name: Login to GCR
