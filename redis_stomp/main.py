@@ -18,10 +18,9 @@ from coilmq.asyncio.server import StompConnection
 from coilmq.asyncio.protocol import STOMP11
 from coilmq.util.frames import FrameBuffer
 from coilmq.exception import ClientDisconnected
-from redis.asyncio import Redis
 
 from redis_stomp.pubsub.topic import RedisTopicManager
-from redis_stomp.redis_connector import aio_connect, connect
+from redis_stomp.redis_connector import connect
 
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 

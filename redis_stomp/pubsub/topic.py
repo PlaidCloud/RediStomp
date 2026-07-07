@@ -7,7 +7,7 @@ from coilmq.asyncio.topic import TopicManager
 from coilmq.asyncio.server import StompConnection
 from coilmq.util.frames import Frame, MESSAGE
 
-from redis_stomp.redis_connector import aio_connect, connect
+from redis_stomp.redis_connector import connect
 
 
 LOGGER = logging.getLogger(__name__)

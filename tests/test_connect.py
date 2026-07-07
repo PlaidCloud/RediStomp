@@ -1,4 +1,4 @@
-"""Tests for redis_stomp.redis_connector.connect / aio_connect.
+"""Tests for redis_stomp.redis_connector.connect.
 
 These assert the clients are built with the right parameters. No real Redis is
 contacted -- redis-py builds connection pools lazily, and the cluster path is
@@ -8,10 +8,9 @@ import socket
 
 import pytest
 import redis
-import redis.asyncio
 
 import redis_stomp.redis_connector as rc
-from redis_stomp.redis_connector import connect, aio_connect, HeadlessSentinelSync, HeadlessSentinel
+from redis_stomp.redis_connector import connect, HeadlessSentinelSync
 
 
 def _kwargs(client):
@@ -75,45 +74,6 @@ def test_connect_cluster_kwargs(monkeypatch):
     assert captured["health_check_interval"] == 3
     assert captured["client_name"] == rc.CLIENT_NAME
     assert isinstance(captured["retry"], redis.retry.Retry)
-
-
-# --- async single instance -------------------------------------------------
-
-def test_aio_connect_single_kwargs():
-    client = aio_connect("redis://ahost:6379/1")
-    assert isinstance(client, redis.asyncio.Redis)
-    ck = _kwargs(client)
-    assert ck["host"] == "ahost"
-    assert ck["db"] == 1
-    assert ck["client_name"] == rc.CLIENT_NAME
-    assert isinstance(ck["retry"], redis.asyncio.retry.Retry)
-
-
-def test_aio_connect_single_omits_health_check_interval():
-    # Documents a real asymmetry: the async single-instance branch does NOT set
-    # health_check_interval, unlike the sync branch. If this is ever "fixed" to
-    # match, update this test.
-    ck = _kwargs(aio_connect("redis://ahost:6379/0"))
-    assert ck.get("health_check_interval", 0) == 0
-
-
-# --- async cluster (stubbed) ----------------------------------------------
-
-def test_aio_connect_cluster_updates_supported_errors(monkeypatch):
-    captured = {}
-
-    def fake_cluster(**kwargs):
-        captured.update(kwargs)
-        return "AIOCLUSTER"
-
-    monkeypatch.setattr(rc, "RedisCluster", fake_cluster)
-    result = aio_connect("redis-cluster://chost:7000")
-    assert result == "AIOCLUSTER"
-    assert captured["host"] == "chost"
-    assert captured["client_name"] == rc.CLIENT_NAME
-    retry = captured["retry"]
-    # aio_connect calls retry.update_supported_errors(DEFAULT_RETRY_ERRORS)
-    assert redis.ConnectionError in retry._supported_errors
 
 
 # --- headless sentinel DNS expansion --------------------------------------
