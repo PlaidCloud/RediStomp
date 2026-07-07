@@ -132,7 +132,10 @@ def main():
     try:
         LOGGING_CONFIG["formatters"]["default"]["fmt"] = "%(asctime)s [%(name)s] %(levelprefix)s %(message)s"
         app.state.redis_url = args.redis
-        uvicorn.run(app, host="0.0.0.0", port=args.port, access_log=False, proxy_headers=True, forwarded_allow_ips='*', log_level=logging.getLevelNamesMapping()[LOG_LEVEL])
+        # ws="websockets-sansio" uses uvicorn's modern websockets implementation;
+        # the default ("auto") selects the legacy impl, which emits DeprecationWarnings
+        # about websockets.legacy / WebSocketServerProtocol on startup and per connection.
+        uvicorn.run(app, host="0.0.0.0", port=args.port, access_log=False, proxy_headers=True, forwarded_allow_ips='*', ws="websockets-sansio", log_level=logging.getLevelNamesMapping()[LOG_LEVEL])
     except KeyboardInterrupt:
         pass
     except Exception as e:
