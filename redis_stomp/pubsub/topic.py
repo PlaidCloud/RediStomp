@@ -105,34 +105,39 @@ class RedisTopicManager(TopicManager):
     async def next_message(self):
         # ToDo: This could be done by registering a callback on subscribe which might be more favorable, I dunno
         # await redis_pubsub.subscribe(**{ACTIVITY_CHANNEL: on_message})
-        while not self._closing:
-            if not self._redis.subscribed:
-                await asyncio.sleep(0.5)
-                continue
-            message = await asyncio.to_thread(self._redis.get_message, ignore_subscribe_messages=True, timeout=0.5)
-            # get_message with timeout=None can return None
-            if message:
-                # print(repr(message))
-                # Lookup the subscriptions by pattern/channel
-                dest = message['channel'] if message['type'] == 'message' else message['pattern']
+        # Wrapped in try/finally so that _closed is set however this coroutine
+        # exits. On websocket disconnect the enclosing task group cancels this
+        # task, which would otherwise skip the post-loop assignment and leave
+        # close() waiting on _closed forever (leaking the coroutine).
+        try:
+            while not self._closing:
+                if not self._redis.subscribed:
+                    await asyncio.sleep(0.5)
+                    continue
+                message = await asyncio.to_thread(self._redis.get_message, ignore_subscribe_messages=True, timeout=0.5)
+                # get_message with timeout=None can return None
+                if message:
+                    # print(repr(message))
+                    # Lookup the subscriptions by pattern/channel
+                    dest = message['channel'] if message['type'] == 'message' else message['pattern']
 
-                bad_subscribers = set()
-                for subscriber in await self._subscriptions.subscribers(dest):
-                    frame = Frame(cmd=MESSAGE)
-                    frame.headers.setdefault('message-id', str(uuid.uuid4()))
-                    frame.headers['destination'] = TOPIC_PREFIX + message['channel']
-                    frame.headers["subscription"] = subscriber.id
-                    frame.body = message['data']
-                    try:
-                        await subscriber.connection.send_frame(frame)
-                    except:
-                        self.log.exception(
-                            "Error delivering message to subscriber %s; client will be disconnected." % subscriber)
-                        # We queue for deletion so we are not modifying the topics dict
-                        # while iterating over it.
-                        bad_subscribers.add(subscriber)
+                    bad_subscribers = set()
+                    for subscriber in await self._subscriptions.subscribers(dest):
+                        frame = Frame(cmd=MESSAGE)
+                        frame.headers.setdefault('message-id', str(uuid.uuid4()))
+                        frame.headers['destination'] = TOPIC_PREFIX + message['channel']
+                        frame.headers["subscription"] = subscriber.id
+                        frame.body = message['data']
+                        try:
+                            await subscriber.connection.send_frame(frame)
+                        except:
+                            self.log.exception(
+                                "Error delivering message to subscriber %s; client will be disconnected." % subscriber)
+                            # We queue for deletion so we are not modifying the topics dict
+                            # while iterating over it.
+                            bad_subscribers.add(subscriber)
 
-                for s in bad_subscribers:
-                    await self.unsubscribe(s.connection, dest, id=s.id)
-
-        self._closed = True
+                    for s in bad_subscribers:
+                        await self.unsubscribe(s.connection, dest, id=s.id)
+        finally:
+            self._closed = True
