@@ -6,3 +6,13 @@ build-backend = "setuptools.build_meta"
 line-length = 125
 target-version = ['py311']
 skip-string-normalization = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+# Backstop so a regression that reintroduces a hang can't wedge the suite.
+timeout = 60
+markers = [
+    "integration: end-to-end tests that drive the app over a websocket",
+]
