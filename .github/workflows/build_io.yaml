@@ -14,7 +14,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Install dependencies
         run: pip install -r requirements.txt; pip install pylint==${{ secrets.PYLINT_VERSION }}
       - name: Run lint
@@ -61,7 +61,7 @@ jobs:
           docker push us-docker.pkg.dev/plaidcloud-build/us-plaidcloud/redistomp:latest
 
       - name: Checkout GitOps Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: PlaidCloud/plaid-tenant-infrastructure
           ref: master
