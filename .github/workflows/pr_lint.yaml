@@ -31,13 +31,6 @@ jobs:
           version: "0.11.10"
       - name: Install dependencies
         run: uv pip install --system -r requirements.txt; uv pip install --system -q ruff;
-      - name: License Checker
-        uses: andersy005/gh-action-py-liccheck@main
-        with:
-          strategy-ini-file: ./liccheck.ini
-          level: cautious
-          requirements-txt-file: ./requirements.txt
-          liccheck-version: ${{ vars.LICCHECK_VERSION }}
       - name: Install ReviewDog
         uses: reviewdog/action-setup@v1
       - name: Check Lint Warnings
@@ -51,3 +44,16 @@ jobs:
           REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ruff check --output-format=concise --exit-zero --select=E9,F63,F7,F82 redis_stomp | reviewdog -efm="%f:%l:%c: %m" -name="Ruff Errors" -reporter=github-check -filter-mode=nofilter -fail-level=error
+
+  license:
+    name: Check Dependency Licenses
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+      - name: Check dependency licenses
+        uses: PlaidCloud/plaidcloud-github-actions/license-check@v1
+        with:
+          requirements: requirements.txt
+          policy: license-policy.txt
