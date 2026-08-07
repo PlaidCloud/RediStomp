@@ -1,0 +1,11 @@
+# RediStomp additions to the organisation licence policy
+# (PlaidCloud/plaidcloud-github-actions/license-check/license-policy.txt).
+# Applied on top of it, never instead of it.
+
+# Not a waiver — the scanner reads no licence for this at all. python-daemon
+# puts its whole COPYING prose in the `license` field ("Copying this work …
+# is under Copyright © 2008–2024 Ben Finney and others"), and its licence is
+# named only in a classifier: `License :: OSI Approved :: Apache Software
+# License`. Trivy takes neither, so we assert what the classifier says.
+# Arrives via coilmq.
+python-daemon = Apache-2.0
