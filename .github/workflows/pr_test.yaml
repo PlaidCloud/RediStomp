@@ -1,10 +1,12 @@
 name: Test RediStomp Service
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - main
 jobs:
   pytest:
+    if: ${{ !github.event.pull_request.draft }}
     name: Run pytest suite
     runs-on: ubuntu-latest
     timeout-minutes: 10
